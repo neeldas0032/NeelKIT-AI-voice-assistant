@@ -1,0 +1,305 @@
+@import 'tailwindcss';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NeelKIT — Developer Voice Workstation
+   ═══════════════════════════════════════════════════════════════════════════
+
+   A local-first voice environment for engineers. It rejects the floating-bubble
+   paradigm of consumer voice assistants in favour of a high-density workstation:
+   deep obsidian voids, frosted glass panels with a hairline specular bevel,
+   recessed terminal surfaces, and monospaced telemetry.
+
+   Three rules govern the palette:
+
+     signature gradient   #3B6CFF -> #7C5CFF -> #22D3EE at 135deg, reserved for
+                          the voice orb, focused inputs and execution progress.
+                          If it glows, it is the live path.
+     semantic telemetry   green live, amber degraded, rose failed. Never
+                          decorative, never applied to anything that is not a
+                          state the machine is actually in.
+     everything else      luminance stepping alone. Hierarchy comes from surface
+                          brightness and blur, not from colour.
+
+   Depth is specular, not shadowed: a 1px gradient along a panel's top edge
+   reads as a milled bevel catching room light, which is cheaper and sharper
+   than the stack of drop shadows most dark UIs reach for.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@theme {
+  --font-ui: 'Geist Variable', 'Geist', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+:root {
+  /* canvas + surfaces */
+  --canvas: #08090b;
+  --glass: rgba(255, 255, 255, 0.04);
+  --glass-hi: rgba(255, 255, 255, 0.065);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-hi: rgba(255, 255, 255, 0.16);
+  --inset: #0d0f13;
+  --inset-border: rgba(255, 255, 255, 0.05);
+
+  /* signature spectrum */
+  --grad-a: #3b6cff;
+  --grad-b: #7c5cff;
+  --grad-c: #22d3ee;
+  --signature: linear-gradient(135deg, var(--grad-a), var(--grad-b), var(--grad-c));
+
+  /* semantic telemetry */
+  --live: #34d399;
+  --warn: #f5a524;
+  --danger: #fb7185;
+
+  /* type */
+  --text: #f2f4f7;
+  --text-2: #98a2b3;
+  /* The spec puts micro-labels at #5A626D. Measured against the canvas that is
+     3.2:1, and these are 10px — the smallest type in the product carrying the
+     least forgiving contrast. Lifted to clear 4.5:1; the two are
+     indistinguishable side by side, and one of them is legible. */
+  --text-3: #767e8a;
+
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: var(--canvas);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: -0.006em;
+}
+
+/* Every figure here is a measurement — a latency, a confidence, a real-time
+   factor. Measurements that reflow as digits change are hard to compare and
+   harder to trust. */
+body,
+input,
+button,
+textarea {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--grad-b) 40%, transparent);
+  color: var(--text);
+}
+
+:focus-visible {
+  outline: 2px solid var(--grad-b);
+  outline-offset: 2px;
+}
+
+/* Scrollbars are furniture, not content. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+/* ── ambient field ────────────────────────────────────────────────────────
+   Two enormous, heavily blurred colour fields behind everything. They are the
+   only decoration in the design, and they exist to stop a full-bleed near-black
+   page reading as an unstyled wireframe. Fixed, non-interactive, behind all. */
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambient::before,
+.ambient::after {
+  content: '';
+  position: absolute;
+  border-radius: 9999px;
+}
+
+.ambient::before {
+  top: -22rem;
+  left: 50%;
+  width: 52rem;
+  height: 30rem;
+  transform: translateX(-50%);
+  background: color-mix(in oklab, var(--grad-a) 20%, transparent);
+  filter: blur(140px);
+}
+
+.ambient::after {
+  top: 2rem;
+  right: 12%;
+  width: 26rem;
+  height: 20rem;
+  background: color-mix(in oklab, var(--grad-b) 14%, transparent);
+  filter: blur(120px);
+}
+
+/* ── surfaces ─────────────────────────────────────────────────────────────
+   Tier 1: a floating panel. The background-image is a single 1px band across
+   the top edge — the specular highlight — layered over the glass fill. */
+@utility glass {
+  background-color: var(--glass);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.16),
+    rgba(255, 255, 255, 0.02)
+  );
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: top left;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  backdrop-filter: blur(16px);
+}
+
+/* Tier 2: a recessed surface. Terminals, transcripts, diffs, metric readouts —
+   anything the machine produced rather than anything the user acts on. */
+@utility inset-surface {
+  background: var(--inset);
+  border: 1px solid var(--inset-border);
+  border-radius: 0.875rem;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* ── type roles ───────────────────────────────────────────────────────────
+   A silkscreened section label: the smallest type in the system, used for every
+   field name, which is what lets the actual values stay unornamented. */
+@utility micro {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+@utility mono-sm {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+@utility code-block {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+/* A large monospaced figure, for the numbers on the telemetry rail. */
+@utility code-stat {
+  font-family: var(--font-mono);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 30px;
+  letter-spacing: -0.02em;
+}
+
+@utility dim {
+  color: var(--text-2);
+}
+
+@utility faint {
+  color: var(--text-3);
+}
+
+/* ── signature ────────────────────────────────────────────────────────────
+   Reserved for the live path. Anything wearing the gradient is either
+   capturing audio, running, or waiting for the user to press it. */
+@utility grad-fill {
+  background-image: var(--signature);
+}
+
+@utility grad-text {
+  background-image: var(--signature);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── controls ─────────────────────────────────────────────────────────────
+   A physical keycap. Bottom border heavier than the others, the way a key has
+   a lit top face and a shadowed skirt. */
+@utility keycap {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 14px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.22);
+  color: var(--text-2);
+}
+
+/* An indicator pip. The glow is the whole reason it reads as lit rather than
+   as a coloured dot, and it is the only place in the design that glows besides
+   the orb. */
+@utility pip {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 9999px;
+  background: currentColor;
+  box-shadow: 0 0 8px color-mix(in oklab, currentColor 70%, transparent);
+}
+
+/* ── motion ───────────────────────────────────────────────────────────────
+   Motion carries exactly two meanings: capturing, and working. Nothing moves
+   decoratively. */
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.breathe {
+  animation: breathe 1.6s ease-in-out infinite;
+}
+
+/* The orb's processing state: the gradient rotates through its own angle, so
+   the light appears to travel around the sphere. */
+@keyframes orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.orbit {
+  animation: orbit 2.4s linear infinite;
+}
+
+@keyframes seat {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.seat {
+  animation: seat 0.18s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathe,
+  .orbit,
+  .seat {
+    animation: none;
+  }
+}

@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="860" viewBox="0 0 1280 860" role="img" aria-labelledby="t d">
+<title id="t">NeelKIT system architecture</title>
+<desc id="d">Clients talk to the neelkitd Go server over REST and WebSocket. Audio flows through a realtime session with Silero VAD, Parakeet speech recognition, transcript repair and an intent router (grammar first, optional local LLM). The assistant passes proposed tool calls through a policy gate and an os.Root sandbox confined to one workspace folder. State is kept in SQLite.</desc>
+<defs>
+<marker id="h-6b7383" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6b7383"/></marker>
+<marker id="h-7c5cff" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#7c5cff"/></marker>
+<marker id="h-f5a524" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#f5a524"/></marker>
+<marker id="h-34d399" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#34d399"/></marker>
+<marker id="h-22d3ee" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#22d3ee"/></marker>
+<marker id="h-fb7185" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#fb7185"/></marker>
+<linearGradient id="sig" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b6cff"/><stop offset="0.5" stop-color="#7c5cff"/><stop offset="1" stop-color="#22d3ee"/></linearGradient>
+</defs>
+<rect width="1280" height="860" rx="20" fill="#0b0d12"/>
+<text x="48" y="58" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="22" font-weight="700" fill="#f2f4f7" text-anchor="start">NeelKIT · system architecture</text>
+<text x="48" y="84" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#a3acbb" text-anchor="start">Everything runs on your machine. Solid arrows follow one spoken command from microphone to result.</text>
+<text x="48" y="118" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="10.5" font-weight="600" fill="#6b7383" text-anchor="start" letter-spacing="1.2">CLIENTS &amp; LOCAL SERVICES</text>
+<text x="1008" y="118" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="10.5" font-weight="600" fill="#6b7383" text-anchor="start" letter-spacing="1.2">ON DISK</text>
+<rect x="48" y="130" width="240" height="166" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="48" y="142" width="3" height="142" rx="1.5" fill="#22d3ee"/>
+<text x="64" y="156" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Web workstation</text>
+<text x="64" y="178" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Next.js 16 · React 19</text>
+<text x="64" y="197" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Mic via AudioWorklet, 16 kHz</text>
+<text x="64" y="216" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Live transcript + spectrum</text>
+<text x="64" y="235" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Approval cards</text>
+<text x="64" y="254" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">History · tools · setup</text>
+<rect x="48" y="316" width="240" height="64" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="48" y="328" width="3" height="40" rx="1.5" fill="#22d3ee"/>
+<text x="64" y="342" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">nk CLI</text>
+<text x="64" y="364" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">ask · plan · transcribe · audit</text>
+<rect x="48" y="398" width="240" height="84" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="48" y="410" width="3" height="60" rx="1.5" fill="#7c5cff"/>
+<text x="64" y="424" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Speech models</text>
+<text x="274" y="424" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="10.5" font-weight="600" fill="#6b7383" text-anchor="end" letter-spacing="0.6">models/</text>
+<text x="64" y="446" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Parakeet TDT 0.6B (int8)</text>
+<text x="64" y="465" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Silero VAD</text>
+<rect x="48" y="586" width="240" height="110" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="48" y="598" width="3" height="86" rx="1.5" fill="#7c5cff"/>
+<text x="64" y="612" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Ollama</text>
+<text x="274" y="612" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="10.5" font-weight="600" fill="#6b7383" text-anchor="end" letter-spacing="0.6">:11434</text>
+<text x="64" y="634" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Local LLM, e.g. qwen2.5</text>
+<text x="64" y="653" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Optional: built-in commands</text>
+<text x="64" y="672" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">work without it</text>
+<rect x="328" y="118" width="640" height="694" rx="18" fill="#10131a" stroke="url(#sig)" stroke-width="1.5"/>
+<rect x="348" y="104" width="252" height="26" rx="13" fill="#0b0d12" stroke="url(#sig)" stroke-width="1.2"/>
+<text x="474" y="122" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#f2f4f7" text-anchor="middle">neelkitd · Go 1.24 · one binary</text>
+<rect x="348" y="150" width="600" height="56" rx="12" fill="#141821" stroke="#262c38"/>
+<text x="364" y="174" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">HTTP API</text>
+<text x="932" y="174" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#6b7383" text-anchor="end">API-key auth · rate limits · request IDs</text>
+<text x="364" y="195" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">REST /v1/*  ·  WebSocket /v1/realtime (single-use ticket)  ·  OpenAPI-checked</text>
+<rect x="348" y="228" width="290" height="150" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="348" y="240" width="3" height="126" rx="1.5" fill="#22d3ee"/>
+<text x="364" y="254" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Realtime session</text>
+<text x="364" y="276" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Ring buffer · incremental mel</text>
+<text x="364" y="295" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Silero VAD endpointing + pre-roll</text>
+<text x="364" y="314" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Previews: async, one at a time</text>
+<text x="364" y="333" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Final: one decode per utterance</text>
+<rect x="348" y="398" width="290" height="84" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="348" y="410" width="3" height="60" rx="1.5" fill="#7c5cff"/>
+<text x="364" y="424" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Speech recognition</text>
+<text x="364" y="446" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Parakeet TDT · ONNX Runtime</text>
+<text x="364" y="465" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Encoder + decoder worker pool</text>
+<rect x="348" y="502" width="290" height="64" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="348" y="514" width="3" height="40" rx="1.5" fill="#7c5cff"/>
+<text x="364" y="528" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Transcript repair</text>
+<text x="364" y="550" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">“feature dash auth” → feature-auth</text>
+<rect x="348" y="586" width="290" height="110" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="348" y="598" width="3" height="86" rx="1.5" fill="#7c5cff"/>
+<text x="364" y="612" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Intent router</text>
+<rect x="364" y="626" width="258" height="24" rx="12" fill="#34d399" fill-opacity="0.12" stroke="#34d399" stroke-opacity="0.45"/>
+<text x="493.0" y="642" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="600" fill="#34d399" text-anchor="middle">1 · Grammar · 16 rules · 0 tokens</text>
+<rect x="364" y="658" width="258" height="24" rx="12" fill="#7c5cff" fill-opacity="0.12" stroke="#7c5cff" stroke-opacity="0.45"/>
+<text x="493.0" y="674" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="600" fill="#7c5cff" text-anchor="middle">2 · Local LLM, if grammar misses</text>
+<rect x="658" y="228" width="290" height="70" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="658" y="240" width="3" height="46" rx="1.5" fill="#3b6cff"/>
+<text x="674" y="254" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Assistant</text>
+<text x="674" y="276" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Turn state machine · audit first</text>
+<rect x="658" y="318" width="290" height="120" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="658" y="330" width="3" height="96" rx="1.5" fill="#f5a524"/>
+<text x="674" y="344" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Policy gate</text>
+<text x="932" y="344" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="10.5" font-weight="600" fill="#6b7383" text-anchor="end">decisions only escalate</text>
+<text x="674" y="366" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="11" font-weight="700" fill="#34d399" text-anchor="start" letter-spacing="0.6">READ</text>
+<text x="752" y="366" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">runs immediately</text>
+<text x="674" y="384" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="11" font-weight="700" fill="#f5a524" text-anchor="start" letter-spacing="0.6">WRITE</text>
+<text x="752" y="384" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">asks first</text>
+<text x="674" y="402" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="11" font-weight="700" fill="#fb7185" text-anchor="start" letter-spacing="0.6">EXECUTE</text>
+<text x="752" y="402" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">always asks</text>
+<text x="674" y="420" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="11" font-weight="700" fill="#22d3ee" text-anchor="start" letter-spacing="0.6">NETWORK</text>
+<text x="752" y="420" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">asks · private IPs refused</text>
+<rect x="658" y="458" width="290" height="110" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="658" y="470" width="3" height="86" rx="1.5" fill="#fb7185"/>
+<text x="674" y="484" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Sandbox</text>
+<text x="674" y="506" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">os.Root: kernel-enforced boundary</text>
+<text x="674" y="525" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">argv only · no shell</text>
+<text x="674" y="544" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Clean environment · secrets hidden</text>
+<rect x="658" y="588" width="290" height="108" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="658" y="600" width="3" height="84" rx="1.5" fill="#3b6cff"/>
+<text x="674" y="614" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Built-in tools</text>
+<text x="674" y="636" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">fs · git · notes</text>
+<text x="674" y="655" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">search · shell tasks</text>
+<text x="674" y="674" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">Typed schema per tool</text>
+<rect x="348" y="716" width="600" height="74" rx="12" fill="#141821" stroke="#262c38"/>
+<text x="364" y="742" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">SQLite · WAL + FTS5</text>
+<text x="364" y="765" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">conversations · transcripts (searchable) · tool executions · audit log · API-key hashes</text>
+<rect x="1008" y="130" width="224" height="308" rx="12" fill="#10131a" stroke="#262c38"/>
+<text x="1024" y="156" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Legend</text>
+<path d="M 1026 168 L 1066 168" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<text x="1078" y="172" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">request path</text>
+<path d="M 1026 195 L 1066 195" stroke="#7c5cff" stroke-width="1.6" marker-end="url(#h-7c5cff)"/>
+<text x="1078" y="199" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">model inference</text>
+<path d="M 1026 222 L 1066 222" stroke="#7c5cff" stroke-width="1.6" stroke-dasharray="5 5" marker-end="url(#h-7c5cff)"/>
+<text x="1078" y="226" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">optional LLM fallback</text>
+<path d="M 1026 249 L 1066 249" stroke="#fb7185" stroke-width="1.6" marker-end="url(#h-fb7185)"/>
+<text x="1078" y="253" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">confined to workspace</text>
+<path d="M 1026 276 L 1066 276" stroke="#f5a524" stroke-width="1.6" stroke-dasharray="5 5" marker-end="url(#h-f5a524)"/>
+<text x="1078" y="280" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">approval round-trip</text>
+<path d="M 1026 303 L 1066 303" stroke="#34d399" stroke-width="1.6" marker-end="url(#h-34d399)"/>
+<text x="1078" y="307" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">persisted to disk</text>
+<text x="1024" y="344" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="600" fill="#f2f4f7" text-anchor="start">Defaults</text>
+<text x="1024" y="366" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">· Listens on 127.0.0.1 only</text>
+<text x="1024" y="383" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">· No unauthenticated mode</text>
+<text x="1024" y="400" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">· No file-delete tool</text>
+<text x="1024" y="417" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">· Nothing leaves the machine</text>
+<rect x="1008" y="458" width="224" height="110" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="1008" y="470" width="3" height="86" rx="1.5" fill="#fb7185"/>
+<text x="1024" y="484" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">Workspace folder</text>
+<text x="1024" y="506" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">The only path tools</text>
+<text x="1024" y="525" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">can reach</text>
+<text x="1024" y="544" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="400" fill="#a3acbb" text-anchor="start">set with -workspace</text>
+<rect x="1008" y="716" width="224" height="74" rx="12" fill="#141821" stroke="#262c38"/>
+<rect x="1008" y="728" width="3" height="50" rx="1.5" fill="#34d399"/>
+<text x="1024" y="742" font-family="Inter, 'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#f2f4f7" text-anchor="start">data/</text>
+<text x="1024" y="764" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="12" font-weight="400" fill="#a3acbb" text-anchor="start">neelkit.db</text>
+<path d="M 288 172 L 346 172" fill="none" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<text x="317" y="164" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="10" font-weight="500" fill="#6b7383" text-anchor="middle">WS+REST</text>
+<path d="M 288 348 L 316 348 L 316 196 L 346 196" fill="none" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<path d="M 288 440 L 346 440" fill="none" stroke="#7c5cff" stroke-width="1.6" marker-end="url(#h-7c5cff)"/>
+<text x="317" y="432" font-family="'JetBrains Mono', 'SF Mono', Consolas, 'Liberation Mono', monospace" font-size="10" font-weight="500" fill="#6b7383" text-anchor="middle">load</text>
+<path d="M 493 206 L 493 226" fill="none" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<path d="M 493 378 L 493 396" fill="none" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<path d="M 493 482 L 493 500" fill="none" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<path d="M 493 566 L 493 584" fill="none" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<path d="M 348 670 L 290 670" fill="none" stroke="#7c5cff" stroke-width="1.6" stroke-dasharray="5 5" marker-end="url(#h-7c5cff)"/>
+<path d="M 638 641 L 648 641 L 648 263 L 656 263" fill="none" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<path d="M 803 298 L 803 316" fill="none" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<path d="M 803 438 L 803 456" fill="none" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<path d="M 803 568 L 803 586" fill="none" stroke="#6b7383" stroke-width="1.6" marker-end="url(#h-6b7383)"/>
+<path d="M 948 330 L 958 330 L 958 178 L 950 178" fill="none" stroke="#f5a524" stroke-width="1.6" stroke-dasharray="5 5" marker-end="url(#h-f5a524)"/>
+<path d="M 948 513 L 1006 513" fill="none" stroke="#fb7185" stroke-width="1.6" marker-end="url(#h-fb7185)"/>
+<path d="M 948 753 L 1006 753" fill="none" stroke="#34d399" stroke-width="1.6" marker-end="url(#h-34d399)"/>
+<path d="M 803 696 L 803 714" fill="none" stroke="#34d399" stroke-width="1.6" marker-end="url(#h-34d399)"/>
+</svg>

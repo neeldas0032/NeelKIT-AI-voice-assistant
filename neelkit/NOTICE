@@ -1,0 +1,29 @@
+NeelKIT
+Copyright 2026 Neel Das
+
+This product includes software derived from Parakeet
+(https://github.com/achetronic/parakeet), Copyright 2026 Alby Hernández,
+licensed under the Apache License, Version 2.0. A copy of that licence is in
+LICENSES/parakeet-APACHE-2.0.txt.
+
+The speech-recognition layer of this project was developed by studying that
+implementation. What was adopted, and what is original, is set out in full in
+ATTRIBUTION.md.
+
+This product depends on, but does not include or modify:
+
+  NVIDIA Parakeet TDT 0.6B v3
+    Speech recognition model. Downloaded at build time.
+    ONNX export: https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx
+    Licensed by NVIDIA; see the model card.
+
+  Silero VAD v6.2.1 (MIT)
+    Voice activity detection. Downloaded at build time, pinned by tag and
+    SHA-256. https://github.com/snakers4/silero-vad
+
+  ONNX Runtime (MIT)
+    https://github.com/microsoft/onnxruntime
+
+  github.com/yalue/onnxruntime_go (MIT)
+  github.com/mattn/go-sqlite3 (MIT)
+  github.com/coder/websocket (ISC)

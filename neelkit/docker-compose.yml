@@ -1,0 +1,121 @@
+# NeelKIT — local-first voice assistant.
+#
+#   docker compose up
+#
+# Four services. `models` is a one-shot that downloads the speech models into a
+# named volume and exits; `neelkitd` waits for it, because starting a speech
+# server without a speech model produces a confusing failure ten seconds later
+# rather than a clear one now.
+#
+# Everything binds to 127.0.0.1 by default. This stack can run programs in the
+# workspace you mount, so exposing it on a LAN has to be a deliberate edit, not
+# an accident of the defaults.
+
+name: neelkit
+
+services:
+  # ------------------------------------------------------------ models
+  models:
+    image: curlimages/curl:8.11.1
+    user: "0:0"
+    volumes:
+      - models:/models
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        B=https://huggingface.co/istupakov/parakeet-tdt-0.6b-v3-onnx/resolve/main
+        cd /models
+
+        if [ -f encoder-model.int8.onnx ] && [ -f silero_vad.onnx ]; then
+          echo "models already present"
+          exit 0
+        fi
+
+        echo "downloading speech models (about 700 MB, once)…"
+        curl -fsSL -o config.json "$$B/config.json"
+        curl -fsSL -o vocab.txt   "$$B/vocab.txt"
+        curl -fsSL -o decoder_joint-model.int8.onnx "$$B/decoder_joint-model.int8.onnx"
+        curl -fsSL -o encoder-model.int8.onnx       "$$B/encoder-model.int8.onnx"
+
+        # Silero VAD is pinned by tag AND checksum. A voice-activity model is
+        # fetched over the network and then trusted with every microphone frame,
+        # so "the tag moved" must be a build failure, not a silent swap.
+        curl -fsSL -o silero_vad.onnx \
+          https://raw.githubusercontent.com/snakers4/silero-vad/v6.2.1/src/silero_vad/data/silero_vad.onnx
+        echo "1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3  silero_vad.onnx" \
+          | sha256sum -c -
+
+        echo "models ready"
+    restart: "no"
+
+  # ---------------------------------------------------------- neelkitd
+  neelkitd:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      args:
+        VERSION: ${NEELKIT_VERSION:-dev}
+    depends_on:
+      models:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:8420:8420"
+    environment:
+      NEELKIT_HTTP_ADDR: 0.0.0.0:8420
+      NEELKIT_MODELS_DIR: /models
+      NEELKIT_DATA_DIR: /data
+      NEELKIT_WORKSPACE_ROOT: /workspace
+      NEELKIT_CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      NEELKIT_ASR_DEVICE: cpu
+      NEELKIT_ASR_WORKERS: ${NEELKIT_ASR_WORKERS:-2}
+      NEELKIT_LLM_PROVIDER: ollama
+      NEELKIT_LLM_BASE_URL: http://ollama:11434
+      NEELKIT_LLM_MODEL: ${NEELKIT_LLM_MODEL:-qwen2.5:7b-instruct}
+      NEELKIT_LOG_FORMAT: json
+      NEELKIT_LOG_LEVEL: ${NEELKIT_LOG_LEVEL:-info}
+      # Set this to keep one key across restarts; leave it unset and the server
+      # prints a fresh one into the logs on every start.
+      NEELKIT_API_KEY: ${NEELKIT_API_KEY:-}
+    volumes:
+      - models:/models:ro
+      - data:/data
+      # The directory the assistant is allowed to touch. Point it at one
+      # project, not at your home directory: the sandbox confines tools to this
+      # path, and a narrower path is a smaller blast radius.
+      - ${NEELKIT_WORKSPACE:-./workspace}:/workspace
+    restart: unless-stopped
+    stop_grace_period: 35s
+    # Tools run as child processes of this container. A modest cap means a
+    # runaway build cannot take the host down with it.
+    mem_limit: ${NEELKIT_MEM_LIMIT:-4g}
+
+  # --------------------------------------------------------------- web
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+      args:
+        NEXT_PUBLIC_API_URL: ${NEELKIT_PUBLIC_URL:-http://127.0.0.1:8420}
+    depends_on:
+      - neelkitd
+    ports:
+      - "127.0.0.1:3000:3000"
+    restart: unless-stopped
+
+  # ------------------------------------------------------------ ollama
+  # The local language model. Optional: without it the grammar tier still
+  # handles every built-in command, which is why neelkitd does not depend on it.
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "127.0.0.1:11434:11434"
+    volumes:
+      - ollama:/root/.ollama
+    restart: unless-stopped
+    profiles: ["llm"]
+
+volumes:
+  models:
+  data:
+  ollama:

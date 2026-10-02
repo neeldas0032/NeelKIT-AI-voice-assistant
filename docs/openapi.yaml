@@ -1,0 +1,596 @@
+# NeelKIT HTTP API.
+#
+# This file is checked against the router by TestOpenAPIMatchesTheRouter in
+# internal/httpapi. A route registered in server.go but missing here — or an
+# operation here with no route — fails the build. Documentation that drifts is
+# worse than none, because it is trusted.
+openapi: 3.1.0
+
+info:
+  title: NeelKIT
+  version: 0.1.0
+  summary: A local-first voice assistant for developers.
+  description: |
+    Every endpoint is served from loopback by default. Authentication is a bearer
+    token minted by the server on first run; there is no unauthenticated mode for
+    anything that can read or change the workspace.
+
+    The WebSocket route is the exception to header authentication: a browser
+    cannot set headers on an upgrade, so the key is exchanged for a single-use
+    ticket over an authenticated POST first. Putting the key in the query string
+    would write it into every access log.
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://127.0.0.1:8420
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: operational
+    description: Liveness, readiness and build information. Unauthenticated.
+  - name: speech
+    description: Transcription, batch and realtime.
+  - name: assistant
+    description: Turns and the approval gate.
+  - name: history
+    description: Conversations, transcripts and the audit log.
+  - name: introspection
+    description: What is loaded and what can be called.
+
+paths:
+  /healthz:
+    get:
+      tags: [operational]
+      summary: Liveness
+      description: |
+        Unauthenticated by design. A liveness probe that needs a credential is a
+        liveness probe that fails during a credential problem.
+      security: []
+      responses:
+        '200':
+          description: The process is up.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, const: ok }
+
+  /readyz:
+    get:
+      tags: [operational]
+      summary: Readiness, per subsystem
+      security: []
+      responses:
+        '200':
+          description: Every check reported.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ready' }
+        '503':
+          description: At least one subsystem is not ready.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Ready' }
+
+  /version:
+    get:
+      tags: [operational]
+      summary: Build information
+      security: []
+      responses:
+        '200':
+          description: Version, commit and build date.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version: { type: string }
+                  commit: { type: string }
+                  build_date: { type: string }
+
+  /metrics:
+    get:
+      tags: [operational]
+      summary: Prometheus exposition
+      description: |
+        Authenticated unless `NEELKIT_METRICS_PUBLIC` is set, which is only
+        sensible behind a private network.
+      responses:
+        '200':
+          description: Text exposition format.
+          content:
+            text/plain: {}
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/audio/transcriptions:
+    post:
+      tags: [speech]
+      summary: Transcribe an audio file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: WAV, or anything ffmpeg can decode.
+                words:
+                  type: boolean
+                  description: Include per-word timings and confidences.
+      responses:
+        '200':
+          description: The transcript.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Transcript' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '413':
+          description: The upload exceeded the configured limit.
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503':
+          description: The recogniser is overloaded and shed this request.
+
+  /v1/assistant/turns:
+    post:
+      tags: [assistant]
+      summary: Run one turn
+      description: |
+        Resolves the text to an intent, applies the policy gate, and executes
+        whatever is allowed to run without asking. Anything that writes,
+        executes, or leaves the machine comes back with status
+        `awaiting_approval` and runs nothing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+                conversation_id: { type: string }
+                execute:
+                  type: boolean
+                  default: true
+                  description: False plans without running anything — a dry run.
+      responses:
+        '200':
+          description: The turn, including any calls that ran or are pending.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Turn' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+
+  /v1/assistant/approvals:
+    post:
+      tags: [assistant]
+      summary: Approve or deny a pending call
+      description: |
+        Single use. An approval is consumed whether the call then succeeds or
+        fails, and it expires — a stale approval must never be replayable.
+
+        Approving does not bypass the sandbox. A path that escapes the workspace
+        is still refused after approval; the gate and the sandbox are independent
+        layers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [call_id, decision]
+              properties:
+                call_id: { type: string }
+                decision: { type: string, enum: [approve, deny] }
+                reason: { type: string }
+      responses:
+        '200':
+          description: The completed call.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Call' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such pending call, or it already expired.
+        '409':
+          description: The approval was already used.
+
+  /v1/conversations:
+    get:
+      tags: [history]
+      summary: List conversations
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50, maximum: 200 }
+      responses:
+        '200':
+          description: Newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  conversations:
+                    type: array
+                    items: { $ref: '#/components/schemas/Conversation' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/conversations/{id}/messages:
+    get:
+      tags: [history]
+      summary: Read one conversation
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Messages in order.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items: { $ref: '#/components/schemas/Message' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such conversation.
+
+  /v1/conversations/{id}:
+    delete:
+      tags: [history]
+      summary: Delete a conversation
+      description: |
+        Removes what was said. It does **not** remove the audit record of
+        anything that ran on the machine — that is deliberate and documented in
+        the interface.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Deleted.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: No such conversation.
+
+  /v1/transcripts/search:
+    get:
+      tags: [history]
+      summary: Full-text search over every final transcript
+      description: |
+        Backed by SQLite FTS5 with prefix indexes rather than the Porter
+        stemmer — Porter stems "deployment" to "deploy" but the query "deploy" to
+        "deploi", so searching for the word you just said found nothing.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 25 }
+      responses:
+        '200':
+          description: Matches with highlighted snippets.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items: { $ref: '#/components/schemas/TranscriptHit' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/audit:
+    get:
+      tags: [history]
+      summary: What has run on this machine
+      description: |
+        Every attempt is written here before it runs, including the ones the user
+        denied.
+      parameters:
+        - name: hours
+          in: query
+          schema: { type: integer, default: 24 }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 100 }
+      responses:
+        '200':
+          description: Audit entries, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items: { type: object }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/tools:
+    get:
+      tags: [introspection]
+      summary: The tool registry
+      description: |
+        The same list the language model receives. Nothing is hidden from this
+        endpoint and offered to the model separately.
+      responses:
+        '200':
+          description: Every registered tool.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tools:
+                    type: array
+                    items: { $ref: '#/components/schemas/Tool' }
+                  workspace: { type: string }
+                  read_only: { type: boolean }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/models:
+    get:
+      tags: [introspection]
+      summary: What is loaded
+      responses:
+        '200':
+          description: Recogniser and language model.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Models' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/realtime/tickets:
+    post:
+      tags: [speech]
+      summary: Mint a single-use WebSocket ticket
+      responses:
+        '200':
+          description: A ticket, valid once and briefly.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ticket: { type: string }
+                  expires_in: { type: integer }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /v1/realtime:
+    get:
+      tags: [speech]
+      summary: Realtime audio session (WebSocket)
+      description: |
+        Upgrade. Authenticated by the `ticket` query parameter rather than a
+        header, because a browser cannot set headers on an upgrade.
+
+        Client sends binary frames of 16 kHz mono PCM, plus JSON control
+        messages. Server sends JSON events: `session.created`,
+        `vad.speech_started`, `vad.speech_stopped`, `transcript.partial`,
+        `transcript.final`, `assistant.turn`, `tool.permission_required`,
+        `tool.completed`, `stream.lagged`, `stream.overloaded`, `error`, `pong`.
+      security: []
+      parameters:
+        - name: ticket
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        '101':
+          description: Switching protocols.
+        '401':
+          description: Missing, expired, or already-used ticket.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: The key neelkitd prints on first run.
+
+  responses:
+    BadRequest:
+      description: Malformed request.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: Missing or invalid key.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: Too many requests.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    Error:
+      type: object
+      description: The single error shape every endpoint returns.
+      properties:
+        error:
+          type: object
+          properties:
+            type: { type: string }
+            code: { type: string }
+            message: { type: string }
+            request_id: { type: string }
+            details: { type: object }
+
+    Ready:
+      type: object
+      properties:
+        ready: { type: boolean }
+        checks:
+          type: object
+          additionalProperties: { type: string }
+
+    Word:
+      type: object
+      properties:
+        word: { type: string }
+        start: { type: number }
+        end: { type: number }
+        confidence: { type: number }
+
+    Transcript:
+      type: object
+      properties:
+        text: { type: string }
+        confidence:
+          type: number
+          description: |
+            Geometric mean of each emitted token's softmax probability. A real
+            measurement — a low value genuinely indicates the model was unsure.
+        rtf: { type: number }
+        words:
+          type: array
+          items: { $ref: '#/components/schemas/Word' }
+
+    Intent:
+      type: object
+      properties:
+        name: { type: string }
+        source:
+          type: string
+          enum: [grammar, llm, none]
+          description: Which tier resolved this — a rule the user can read, or a model they cannot.
+        confidence: { type: number }
+        slots:
+          type: object
+          additionalProperties: { type: string }
+        pattern: { type: string }
+        reply: { type: string }
+
+    Call:
+      type: object
+      properties:
+        call_id: { type: string }
+        tool: { type: string }
+        args: { type: object }
+        risk: { type: string, enum: [read, write, execute, network] }
+        decision: { type: string, enum: [allow, confirm, deny] }
+        reason: { type: string }
+        preview:
+          type: string
+          description: |
+            The exact command, in words. An integration test asserts this string
+            describes the same argv that executes.
+        status:
+          type: string
+          enum: [planned, awaiting_approval, running, succeeded, failed, denied]
+        summary: { type: string }
+        stdout: { type: string }
+        error: { type: string }
+        duration_ms: { type: integer }
+
+    Turn:
+      type: object
+      properties:
+        turn_id: { type: string }
+        conversation_id: { type: string }
+        text: { type: string }
+        raw_text:
+          type: string
+          description: Before normalisation, so the repair pass is auditable.
+        intent: { $ref: '#/components/schemas/Intent' }
+        calls:
+          type: array
+          items: { $ref: '#/components/schemas/Call' }
+        status:
+          type: string
+          enum: [executed, awaiting_approval, denied, failed, chat]
+        message: { type: string }
+        latency_ms: { type: integer }
+
+    Conversation:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        pinned: { type: boolean }
+        created_at: { type: integer }
+        updated_at: { type: integer }
+        message_count: { type: integer }
+
+    Message:
+      type: object
+      properties:
+        id: { type: string }
+        conversation_id: { type: string }
+        turn_id: { type: string }
+        role: { type: string, enum: [user, assistant, tool, system] }
+        content: { type: string }
+        source: { type: string }
+        created_at: { type: integer }
+
+    TranscriptHit:
+      type: object
+      properties:
+        id: { type: string }
+        conversation_id: { type: string }
+        text: { type: string }
+        snippet: { type: string }
+        confidence: { type: number }
+        duration_ms: { type: integer }
+        created_at: { type: integer }
+
+    Tool:
+      type: object
+      properties:
+        name: { type: string }
+        title: { type: string }
+        description: { type: string }
+        schema: { type: object }
+        risk: { type: string, enum: [read, write, execute, network] }
+        idempotent: { type: boolean }
+        examples:
+          type: array
+          items:
+            type: object
+            properties:
+              utterance: { type: string }
+              args: { type: object }
+
+    Models:
+      type: object
+      properties:
+        asr:
+          type: object
+          properties:
+            model: { type: string }
+            precision: { type: string }
+            device: { type: string }
+            workers: { type: integer }
+            ready: { type: boolean }
+        llm:
+          type: object
+          properties:
+            provider: { type: string }
+            model: { type: string }

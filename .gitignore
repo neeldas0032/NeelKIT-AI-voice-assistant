@@ -1,0 +1,30 @@
+bin/
+data/
+models/
+coverage.out
+.env
+*.db
+*.db-wal
+*.db-shm
+testdata/synthetic-model/
+web/node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+*.tsbuildinfo
+workspace/
+
+# Voice recordings are the user's own, and Playwright output is per-run.
+testdata/speech/*.wav
+web/test-results/
+web/playwright-report/
+bench.json
+
+# Local environment and editor noise.
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
